@@ -23,7 +23,7 @@ export default function UploadPage() {
 
   const handleFileChange = (selectedFile: File | null) => {
     if (selectedFile && selectedFile.size > MAX_FILE_SIZE) {
-      toast.error("File is too large. Maximum size is 500MB.")
+      toast.error(`File is too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.`)
       return
     }
     setFile(selectedFile)
@@ -34,17 +34,7 @@ export default function UploadPage() {
 
     try {
       setUploading(true)
-
-      // Simulate progress
-      const interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 95) {
-            clearInterval(interval)
-            return 95
-          }
-          return prev + 5
-        })
-      }, 300)
+      setProgress(0)
 
       // Upload file to Supabase Storage
       const fileExt = file.name.split(".").pop()
@@ -53,7 +43,11 @@ export default function UploadPage() {
       const { data, error: uploadError } = await uploadFile(
         STORAGE_BUCKETS.RECORDINGS,
         filePath,
-        file
+        file,
+        (progress) => {
+          // Update progress directly from the upload
+          setProgress(progress)
+        }
       )
 
       if (uploadError) throw uploadError
@@ -70,20 +64,29 @@ export default function UploadPage() {
 
       if (dbError) throw dbError
 
-      clearInterval(interval)
       setProgress(100)
-
       toast.success("File uploaded successfully!")
 
       // Redirect to dashboard after a short delay
       setTimeout(() => {
         router.push("/dashboard")
       }, 1000)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading file:", error)
-      toast.error("Error uploading file. Please try again.")
-    } finally {
+      
       setUploading(false)
+      setProgress(0)
+      
+      // Display appropriate error message
+      if (error.message?.includes("size")) {
+        toast.error(error.message)
+      } else if (error.message?.includes("storage limit")) {
+        toast.error("Storage quota exceeded. Please contact support.")
+      } else if (error.message?.includes("not found")) {
+        toast.error("Storage bucket not found. Please contact support.")
+      } else {
+        toast.error("Error uploading file. Please try again.")
+      }
     }
   }
 

@@ -1,10 +1,9 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies as nextCookies } from "next/headers"
 
 export function createServerClient() {
-  const cookieStore = cookies()
-
-  return createServerComponentClient({
-    cookies: () => cookieStore,
+  // Pass cookies via callback to avoid synchronous cookies() calls in Next.js
+  return createRouteHandlerClient({
+    cookies: () => nextCookies()
   })
 }

@@ -3,6 +3,8 @@ import { createServerClient } from "@/lib/supabase-server"
 
 export async function POST(request: Request) {
   try {
+    console.warn("DEPRECATED: The transcription-callback endpoint is no longer in use as transcriptions are now processed directly via Deepgram")
+    
     // Get transcription result from the request
     const {
       recordingId,
@@ -35,6 +37,9 @@ export async function POST(request: Request) {
       )
     }
 
+    // This endpoint is kept for legacy purposes but we log a warning
+    console.log(`Received legacy callback for recording ${recordingId}`)
+
     // Update recording status based on the transcription result
     if (status === "completed" && transcription) {
       // Update recording status
@@ -55,9 +60,6 @@ export async function POST(request: Request) {
       if (insertError) {
         throw new Error(`Failed to save transcription: ${insertError.message}`)
       }
-
-      // Next, you would typically send this to your LLM for summarization
-      // For now, we'll just return success
 
       return NextResponse.json({
         message: "Transcription saved successfully",
