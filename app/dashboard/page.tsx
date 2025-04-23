@@ -339,6 +339,29 @@ export default function DashboardPage() {
     }
   };
 
+  // Handler to trigger summarization
+  const handleSummarize = async (recordingId: string) => {
+    if (!recordingId) return;
+    try {
+      const res = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recordingId }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to start summarization');
+      }
+      const data = await res.json();
+      toast.success('Summary generated!');
+      // Refresh recordings and summaries
+      fetchRecordings();
+    } catch (err: any) {
+      console.error('Error starting summarization:', err);
+      toast.error(err.message || 'Failed to summarize');
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -440,6 +463,17 @@ export default function DashboardPage() {
                                 onClick={() => handleTranscribe(recording.id)}
                                 disabled={isTranscribing}
                                 title="Transcribe recording"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {recording.status === 'completed' && !summaries.some(s => s.recording_id === recording.id) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-green-500"
+                                onClick={() => handleSummarize(recording.id)}
+                                title="Summarize recording"
                               >
                                 <FileText className="h-4 w-4" />
                               </Button>

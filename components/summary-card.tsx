@@ -25,7 +25,7 @@ interface SummaryCardProps {
     recording_id: string
     title?: string
     main_points?: string[]
-    action_items?: string[]
+    next_steps?: string[]
     participants?: string[]
     general_notes?: string
   }
@@ -40,14 +40,24 @@ export function SummaryCard({ summary, recording }: SummaryCardProps) {
     }
 
     try {
-      const fileUrl = getFileUrl(STORAGE_BUCKETS.RECORDINGS, recording.file_path)
-      const link = document.createElement('a')
-      link.href = fileUrl
-      link.download = recording.file_name
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      toast.success("Download started")
+      getFileUrl(STORAGE_BUCKETS.RECORDINGS, recording.file_path)
+        .then(({ signedUrl, error }) => {
+          if (error || !signedUrl) {
+            throw new Error("Failed to get download URL")
+          }
+          
+          const link = document.createElement('a')
+          link.href = signedUrl
+          link.download = recording.file_name
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          toast.success("Download started")
+        })
+        .catch(error => {
+          console.error("Error getting signed URL:", error)
+          toast.error("Failed to download file")
+        })
     } catch (error) {
       console.error("Error downloading file:", error)
       toast.error("Failed to download file")
@@ -76,16 +86,16 @@ export function SummaryCard({ summary, recording }: SummaryCardProps) {
           </div>
         )}
 
-        {summary.action_items && summary.action_items.length > 0 && (
+        {summary.next_steps && summary.next_steps.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <ArrowRight className="h-5 w-5 text-blue-500" />
-              <h3 className="text-lg font-medium">Action Items</h3>
+              <h3 className="text-lg font-medium">Next Steps</h3>
             </div>
             <Textarea
               className="min-h-[100px]"
-              placeholder="No action items found in this meeting."
-              value={summary.action_items.join("\n- ")}
+              placeholder="No next steps found in this meeting."
+              value={summary.next_steps.join("\n- ")}
               readOnly
             />
           </div>

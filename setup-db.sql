@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS summaries (
   recording_id UUID NOT NULL REFERENCES recordings(id) ON DELETE CASCADE,
   title TEXT,
   main_points TEXT[],
-  action_items TEXT[],
+  next_steps TEXT[],
   participants TEXT[],
   general_notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
