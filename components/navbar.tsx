@@ -22,40 +22,13 @@ export function Navbar() {
 
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center gap-2">
-            <FileText className="h-6 w-6" />
-            <span className="text-xl font-bold">Minutes to Memo</span>
-          </Link>
-        </div>
+      <div className="container flex h-16 items-center px-4">
+        <Link href="/" className="flex items-center gap-2 mr-8">
+          <FileText className="h-6 w-6" />
+          <span className="text-xl font-bold">Minutes to Memo</span>
+        </Link>
 
-        <nav className="hidden md:flex items-center gap-6">
-          <Button variant="ghost" asChild>
-            <Link href="/">
-              <Home className="h-4 w-4 mr-2" />
-              Home
-            </Link>
-          </Button>
-          {user && (
-            <>
-              <Button variant="ghost" asChild>
-                <Link href="/upload">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild>
-                <Link href="/dashboard">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Dashboard
-                </Link>
-              </Button>
-            </>
-          )}
-        </nav>
-
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
 
           {user ? (

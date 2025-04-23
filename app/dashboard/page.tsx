@@ -48,6 +48,7 @@ export default function DashboardPage() {
   const [isTranscribing, setIsTranscribing] = useState(false)
   const { user } = useAuth()
   const router = useRouter()
+  const [transcriptOpen, setTranscriptOpen] = useState(false)
 
   const fetchRecordings = async () => {
     if (!user) return;
@@ -481,18 +482,6 @@ export default function DashboardPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-amber-500"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                checkTranscriptionStatus(recording.id);
-                              }}
-                              title="Debug transcription status"
-                            >
-                              <Bug className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
                               className="h-8 w-8 text-destructive"
                               onClick={() => handleDeleteRecording(recording.id)}
                               title="Delete recording"
@@ -511,13 +500,28 @@ export default function DashboardPage() {
               {selectedRecording ? (
                 selectedRecordingData?.status === 'completed' ? (
                   <div className="space-y-6">
-                    <TranscriptViewer recordingId={selectedRecording} />
                     {selectedSummary && (
                       <SummaryCard
                         summary={selectedSummary}
                         recording={selectedRecordingData}
                       />
                     )}
+                    {/* Collapsible transcript viewer */}
+                    <Card>
+                      <CardHeader className="cursor-pointer" onClick={() => setTranscriptOpen(!transcriptOpen)}>
+                        <div className="flex justify-between items-center">
+                          <CardTitle>Meeting Transcript</CardTitle>
+                          <Button variant="ghost" size="sm">
+                            {transcriptOpen ? "Hide" : "Show"} Transcript
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      {transcriptOpen && (
+                        <CardContent>
+                          <TranscriptViewer recordingId={selectedRecording} />
+                        </CardContent>
+                      )}
+                    </Card>
                   </div>
                 ) : (
                   <Card>
