@@ -33,9 +33,10 @@ interface SummaryCardProps {
     general_notes?: string
   }
   recording?: Recording | null
+  showGeneralNotes?: boolean
 }
 
-export function SummaryCard({ summary, recording }: SummaryCardProps) {
+export function SummaryCard({ summary, recording, showGeneralNotes = true }: SummaryCardProps) {
   const summaryRef = useRef<HTMLDivElement>(null)
 
   const handleDownloadRecording = () => {
@@ -160,7 +161,7 @@ export function SummaryCard({ summary, recording }: SummaryCardProps) {
             </div>
           )}
 
-          {summary.general_notes && (
+          {showGeneralNotes && summary.general_notes && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-purple-500" />

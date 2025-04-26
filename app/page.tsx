@@ -22,7 +22,7 @@ export default function Home() {
                   decisions, action items, and important notes.
                 </p>
               </div>
-              <div className="space-x-4">
+              <div className="flex flex-col sm:flex-row items-center gap-4">
                 <Button asChild size="lg">
                   <Link href="/upload">Get Started</Link>
                 </Button>

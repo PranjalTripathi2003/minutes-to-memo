@@ -5,7 +5,7 @@ import { Navbar } from "@/components/navbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Download, File, FileText, Plus, Trash2, CircleOff, CircleAlert, Bug } from "lucide-react"
+import { Download, File, FileText, Plus, Trash2, CircleOff, CircleAlert, Bug, Zap } from "lucide-react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/components/auth/auth-context"
@@ -46,6 +46,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [selectedRecording, setSelectedRecording] = useState<string | null>(null)
   const [isTranscribing, setIsTranscribing] = useState(false)
+  const [showTranscript, setShowTranscript] = useState(false)
+  const [showNotes, setShowNotes] = useState(false)
   const { user } = useAuth()
   const router = useRouter()
   const [transcriptOpen, setTranscriptOpen] = useState(false)
@@ -363,6 +365,50 @@ export default function DashboardPage() {
     }
   }
 
+  // Add this function to handle transcript download
+  const handleDownloadTranscript = async (recordingId: string) => {
+    if (!recordingId) return;
+    
+    try {
+      // Fetch the transcription content
+      const { data: transcription, error } = await supabase
+        .from("transcriptions")
+        .select("content")
+        .eq("recording_id", recordingId)
+        .single();
+        
+      if (error || !transcription) {
+        throw new Error("Transcript not found");
+      }
+      
+      // Create a blob with the content
+      const blob = new Blob([transcription.content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      
+      // Get the recording filename to use as download name
+      const recording = recordings.find(r => r.id === recordingId);
+      const filename = recording ? 
+        `${recording.file_name.split('.')[0]}_transcript.txt` : 
+        `transcript_${recordingId}.txt`;
+      
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the URL object
+      URL.revokeObjectURL(url);
+      
+      toast.success("Transcript download started");
+    } catch (error) {
+      console.error("Error downloading transcript:", error);
+      toast.error("Failed to download transcript");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -414,75 +460,53 @@ export default function DashboardPage() {
                             : "bg-card hover:bg-muted/50"
                         } cursor-pointer transition-colors mb-2`}
                       >
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                           <div
                             className="flex items-center gap-3 flex-1"
                             onClick={() => setSelectedRecording(recording.id)}
                           >
                             <File className="h-5 w-5 text-muted-foreground" />
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 flex items-center gap-2">
                               <p className="font-medium text-sm">{recording.file_name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatDistanceToNow(new Date(recording.created_at), { addSuffix: true })}
-                              </p>
-                              <div className="mt-1">
-                                <TranscriptionStatus 
-                                  recordingId={recording.id} 
-                                  status={recording.status}
-                                  onStatusChange={(newStatus) => {
-                                    // Update recording in the local state
-                                    const updatedRecordings = recordings.map(r => 
-                                      r.id === recording.id ? { ...r, status: newStatus } : r
-                                    );
-                                    setRecordings(updatedRecordings);
-                                    
-                                    // If status is completed, refresh all data
-                                    if (newStatus === 'completed') {
-                                      fetchRecordings();
-                                    }
-                                  }}
-                                />
-                              </div>
+                              <Badge variant="outline" size="sm">{recording.status}</Badge>
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-2">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-8 w-8 flex items-center justify-center text-muted-foreground"
                               onClick={() => handleDownloadRecording(recording)}
                               title="Download recording"
                             >
                               <Download className="h-4 w-4" />
                             </Button>
-                            {recording.status !== 'transcribing' && recording.status !== 'completed' && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-blue-500"
-                                onClick={() => handleTranscribe(recording.id)}
-                                disabled={isTranscribing}
-                                title="Transcribe recording"
-                              >
-                                <FileText className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {recording.status === 'completed' && !summaries.some(s => s.recording_id === recording.id) && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-green-500"
-                                onClick={() => handleSummarize(recording.id)}
-                                title="Summarize recording"
-                              >
-                                <FileText className="h-4 w-4" />
-                              </Button>
-                            )}
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-destructive"
+                              className="h-8 w-8 flex items-center justify-center text-blue-500"
+                              onClick={() => {
+                                setShowNotes(false); // hide notes when starting transcription
+                                handleTranscribe(recording.id);
+                              }}
+                              title="Transcribe recording"
+                            >
+                              <Zap className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 flex items-center justify-center text-green-500"
+                              onClick={() => handleSummarize(recording.id)}
+                              title="Summarize recording"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 flex items-center justify-center text-destructive"
                               onClick={() => handleDeleteRecording(recording.id)}
                               title="Delete recording"
                             >
@@ -500,58 +524,67 @@ export default function DashboardPage() {
               {selectedRecording ? (
                 selectedRecordingData?.status === 'completed' ? (
                   <div className="space-y-6">
-                    {selectedSummary && (
-                      <SummaryCard
-                        summary={selectedSummary}
-                        recording={selectedRecordingData}
-                      />
+                    <div className="flex gap-2">
+                      <Button onClick={() => setShowNotes(s => !s)} variant={showNotes ? 'default' : 'outline'}>Notes</Button>
+                      <Button onClick={() => setShowTranscript(s => !s)} variant={showTranscript ? 'default' : 'outline'}>Transcript</Button>
+                    </div>
+                    {/* Notes pane: show SummaryCard or placeholder */}
+                    {showNotes && (
+                      selectedSummary ? (
+                        <SummaryCard
+                          summary={selectedSummary}
+                          recording={selectedRecordingData}
+                          showGeneralNotes={showNotes}
+                        />
+                      ) : (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>No Notes Available</CardTitle>
+                            <CardDescription>
+                              Click the "Summarize" button above to generate meeting notes.
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-muted-foreground">
+                              No summary has been generated yet.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )
                     )}
-                    {/* Collapsible transcript viewer */}
-                    <Card>
-                      <CardHeader className="cursor-pointer" onClick={() => setTranscriptOpen(!transcriptOpen)}>
-                        <div className="flex justify-between items-center">
-                          <CardTitle>Meeting Transcript</CardTitle>
-                          <Button variant="ghost" size="sm">
-                            {transcriptOpen ? "Hide" : "Show"} Transcript
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      {transcriptOpen && (
+                    {showTranscript && selectedRecording && (
+                      <TranscriptViewer recordingId={selectedRecording} />
+                    )}
+                    {showTranscript && (
+                      <Card>
+                        <CardHeader>
+                          <div className="flex justify-between items-center">
+                            <CardTitle>Meeting Transcript</CardTitle>
+                            <Button 
+                              variant="outline" 
+                              onClick={() => handleDownloadTranscript(selectedRecording!)}
+                            >
+                              <Download className="mr-2 h-4 w-4" />
+                              Download Transcript
+                            </Button>
+                          </div>
+                        </CardHeader>
                         <CardContent>
-                          <TranscriptViewer recordingId={selectedRecording} />
+                          <p className="text-muted-foreground">
+                            Download the complete transcript of this recording as a text file.
+                          </p>
                         </CardContent>
-                      )}
-                    </Card>
+                      </Card>
+                    )}
                   </div>
                 ) : (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Processing</CardTitle>
-                      <CardDescription>This recording is still being processed. Check back soon.</CardDescription>
+                      <CardTitle>Transcribing</CardTitle>
+                      <CardDescription>
+                        This recording is currently being transcribed. Click "Transcript" when done.
+                      </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-col items-center justify-center py-12">
-                        <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-xl font-medium mb-2">Summary not available yet</h3>
-                        <p className="text-muted-foreground">
-                          We're still processing this recording. This may take a few minutes.
-                        </p>
-                        {selectedRecordingData && selectedRecordingData.status === 'transcribing' && (
-                          <div className="mt-4 w-full max-w-md">
-                            <TranscriptionStatus 
-                              recordingId={selectedRecordingData.id} 
-                              status={selectedRecordingData.status}
-                              onStatusChange={(newStatus) => {
-                                // If status changes to completed, refresh all data
-                                if (newStatus === 'completed') {
-                                  fetchRecordings();
-                                }
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
                   </Card>
                 )
               ) : (
